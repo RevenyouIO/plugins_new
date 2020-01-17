@@ -123,6 +123,11 @@ final class MethodCallHandlerImpl implements MethodChannel.MethodCallHandler {
           }
           break;
         }
+	  case "setPointOfInterest":
+        {
+          result.notImplemented();
+          break;
+        }
       case "dispose":
         {
           if (camera != null) {
