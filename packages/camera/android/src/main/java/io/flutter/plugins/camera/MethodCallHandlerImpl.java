@@ -128,8 +128,8 @@ final class MethodCallHandlerImpl implements MethodChannel.MethodCallHandler {
 			System.out.println("onMethodCall: setPointOfInterest");
 
 		  try {
-			final float offsetX = call.arguments["offsetX"];
-			final float offsetY = call.arguments["offsetY"];
+			final float offsetX = call.argument("offsetX");
+			final float offsetY = call.argument("offsetY");
             camera.handleFocus(offsetX, offsetY);
             result.success(null);
           } catch (Exception e) {
