@@ -460,50 +460,50 @@ public class Camera {
         (int)(x + 100), 
         (int)(y + 100));
 
-
+	int cameraId = Integer.parseInt(cameraName);
     if (cameraId == null) return;
-    CameraManager cm = (CameraManager)this.getSystemService(Context.CAMERA_SERVICE);
+    //CameraManager cm = (CameraManager)this.getSystemService(Context.CAMERA_SERVICE);
     CameraCharacteristics cc = null;
     try {
-        cc = cm.getCameraCharacteristics(cameraId);
+        cc = cameraManager.getCameraCharacteristics(cameraId);
     } catch (CameraAccessException e) {
         e.printStackTrace();
     }
 
 
     MeteringRectangle focusArea = new MeteringRectangle(touchRect,MeteringRectangle.METERING_WEIGHT_DONT_CARE);
-    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
+    captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
     try {
-        mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback,
-                mBackgroundHandler);
+        cameraCaptureSession.capture(captureRequestBuilder.build(), null,
+                null);
         // After this, the camera will go back to the normal state of preview.
-        mState = STATE_PREVIEW;
+       // mState = STATE_PREVIEW;
     } catch (CameraAccessException e){
         // log
     }
 
     /* if (isMeteringAreaAESupported(cc)) {
-     *//*mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS,
+     *//*captureRequestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS,
                 new MeteringRectangle[]{focusArea});*//*
     }
     if (isMeteringAreaAFSupported(cc)) {
-        *//*mPreviewRequestBuilder
+        *//*captureRequestBuilder
                 .set(CaptureRequest.CONTROL_AF_REGIONS, new MeteringRectangle[]{focusArea});
-        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
+        captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
                 CaptureRequest.CONTROL_AF_MODE_AUTO);*//*
     }*/
-    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS,
+    captureRequestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS,
             new MeteringRectangle[]{focusArea});
-    mPreviewRequestBuilder
+    captureRequestBuilder
             .set(CaptureRequest.CONTROL_AF_REGIONS, new MeteringRectangle[]{focusArea});
-    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
+    captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
             CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
+    captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
             CameraMetadata.CONTROL_AF_TRIGGER_START);
-    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
+    captureRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
             CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_START);
     try {
-        mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(), mCaptureCallback,
+        cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), mCaptureCallback,
                 mBackgroundHandler);
         /* mManualFocusEngaged = true;*/
     } catch (CameraAccessException e) {
