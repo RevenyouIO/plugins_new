@@ -7,6 +7,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.ImageFormat;
+import android.graphics.Rect; 
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -16,6 +17,7 @@ import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureFailure;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.CamcorderProfile;
 import android.media.Image;
@@ -442,7 +444,7 @@ public class Camera {
         });
   }
 
-   public void handleFocus(float x, float y) { //MotionEvent event) {
+   public void handleFocus(float x, float y) throws CameraAccessException { //MotionEvent event) {
     //int pointerId = event.getPointerId(0);
     //int pointerIndex = event.findPointerIndex(pointerId);
 
@@ -452,18 +454,18 @@ public class Camera {
 
 	System.out.println("handleFocus(x, y) called");
 
-    Rect touchRect = new Rect(
-            (int) (x - 100),
-            (int) (y - 100),
-            (int) (x + 100),
-            (int) (y + 100) );
+	Rect touchRect = new Rect(
+        (int)(x - 100), 
+        (int)(y - 100), 
+        (int)(x + 100), 
+        (int)(y + 100));
 
 
-    if (mCameraId == null) return;
+    if (cameraId == null) return;
     CameraManager cm = (CameraManager)this.getSystemService(Context.CAMERA_SERVICE);
     CameraCharacteristics cc = null;
     try {
-        cc = cm.getCameraCharacteristics(mCameraId);
+        cc = cm.getCameraCharacteristics(cameraId);
     } catch (CameraAccessException e) {
         e.printStackTrace();
     }
