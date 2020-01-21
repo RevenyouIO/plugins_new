@@ -132,6 +132,8 @@ public class Camera {
     previewSize = computeBestPreviewSize(cameraName, preset);
   }
 
+	
+
 
   private CameraCaptureSession.CaptureCallback mCaptureCallback
             = new CameraCaptureSession.CaptureCallback() {
@@ -545,12 +547,22 @@ public class Camera {
 	
     if (cameraName == null) return;
     //CameraManager cm = (CameraManager)this.getSystemService(Context.CAMERA_SERVICE);
-    CameraCharacteristics cc = null;
-    try {
-        cc = cameraManager.getCameraCharacteristics(cameraName);
-    } catch (CameraAccessException e) {
-        e.printStackTrace();
-    }
+    CameraCharacteristics cc = cameraManager.getCameraCharacteristics(cameraName);
+    //try {
+  //      cc = cameraManager.getCameraCharacteristics(cameraName);
+  //  } catch (CameraAccessException e) {
+  //      e.printStackTrace();
+  //  }
+
+	private boolean isMeteringAreaAFSupported = false;
+	if (CameraCharacteristics.CONTROL_MAX_REGIONS_AF >= 1) {
+		isMeteringAreaAFSupported = true;
+	}
+
+	private boolean isMeteringAreaAESupported = false;
+	if (CameraCharacteristics.CONTROL_MAX_REGIONS_AE >= 1) {
+		isMeteringAreaAFSupported = true;
+	}
 
 
     MeteringRectangle focusArea = new MeteringRectangle(touchRect,MeteringRectangle.METERING_WEIGHT_DONT_CARE);
@@ -577,11 +589,11 @@ public class Camera {
         // log
     }
 
-    if (isMeteringAreaAESupported(cc)) {
+    if (isMeteringAreaAESupported) {
      captureRequestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS,
                 new MeteringRectangle[]{focusArea});
     }
-    if (isMeteringAreaAFSupported(cc)) {
+    if (isMeteringAreaAFSupported) {
         captureRequestBuilder
                 .set(CaptureRequest.CONTROL_AF_REGIONS, new MeteringRectangle[]{focusArea});
         captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
