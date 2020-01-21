@@ -534,7 +534,7 @@ public class Camera {
     // Get the pointer's current position
     //float x = event.getX(pointerIndex);
     //float y = event.getY(pointerIndex);
-
+	System.out.println("Handle focus");
 
 	Rect touchRect = new Rect(
         (int)(x), 
@@ -555,9 +555,9 @@ public class Camera {
 
     MeteringRectangle focusArea = new MeteringRectangle(touchRect,MeteringRectangle.METERING_WEIGHT_DONT_CARE);
 
-	//cameraCaptureSession.stopRepeating();
-	//captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
-   // captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
+	cameraCaptureSession.stopRepeating();
+	captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
+    captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
 
 
 
@@ -567,7 +567,7 @@ public class Camera {
 
 
 
-    captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
+    //captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
     try {
         cameraCaptureSession.capture(captureRequestBuilder.build(), mCaptureCallback,
                 mBackgroundHandler);
@@ -577,17 +577,38 @@ public class Camera {
         // log
     }
 
-    /* if (isMeteringAreaAESupported(cc)) {
+     if (isMeteringAreaAESupported(cc)) {
+		 System.out.println("AE regions are supported");
      captureRequestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS,
                 new MeteringRectangle[]{focusArea});
-    }
+    } else {
+System.out.println("AE regions NOT supported");
+	}
     if (isMeteringAreaAFSupported(cc)) {
+		System.out.println("AF regions are supported");
         captureRequestBuilder
                 .set(CaptureRequest.CONTROL_AF_REGIONS, new MeteringRectangle[]{focusArea});
         captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
                 CaptureRequest.CONTROL_AF_MODE_AUTO);
-    }*/
-    captureRequestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS,
+    } else {
+		System.out.println("AF regions NOT supported");
+	}
+
+	try {
+        cameraCaptureSession.capture(captureRequestBuilder.build(), mCaptureCallback,
+                mBackgroundHandler);
+        // After this, the camera will go back to the normal state of preview.
+        
+    } catch (CameraAccessException e){
+        // log
+    }
+
+	captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
+	captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
+	captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, null);
+
+
+   /* captureRequestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS,
             new MeteringRectangle[]{focusArea});
     captureRequestBuilder
             .set(CaptureRequest.CONTROL_AF_REGIONS, new MeteringRectangle[]{focusArea});
@@ -595,10 +616,10 @@ public class Camera {
             CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
     captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
             CameraMetadata.CONTROL_AF_TRIGGER_START);
-    captureRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
-            CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_START);
+    captureRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, 
+            CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_START);*/
     try {
-        cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), mCaptureCallback,
+        cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null,
                 mBackgroundHandler);
         /* mManualFocusEngaged = true;*/
     } catch (CameraAccessException e) {
