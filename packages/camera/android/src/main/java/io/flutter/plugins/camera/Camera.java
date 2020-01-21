@@ -548,6 +548,12 @@ public class Camera {
     if (cameraName == null) return;
     //CameraManager cm = (CameraManager)this.getSystemService(Context.CAMERA_SERVICE);
     CameraCharacteristics cc = cameraManager.getCameraCharacteristics(cameraName);
+	int maxAF = cc.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AF);
+	int maxAE = cc.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AE);
+
+	
+
+
     //try {
   //      cc = cameraManager.getCameraCharacteristics(cameraName);
   //  } catch (CameraAccessException e) {
@@ -555,12 +561,12 @@ public class Camera {
   //  }
 
 	boolean isMeteringAreaAFSupported = false;
-	if (cc.CONTROL_MAX_REGIONS_AF >= 1) {
+	if ( maxAF >= 1) {
 		isMeteringAreaAFSupported = true;
 	}
 
 	boolean isMeteringAreaAESupported = false;
-	if (cc.CONTROL_MAX_REGIONS_AE >= 1) {
+	if (maxAE >= 1) {
 		isMeteringAreaAFSupported = true;
 	}
 
