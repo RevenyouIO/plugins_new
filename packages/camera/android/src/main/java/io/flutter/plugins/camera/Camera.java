@@ -444,7 +444,7 @@ public class Camera {
         });
   }
 
-   public void handleFocus(float x, float y) throws CameraAccessException { //MotionEvent event) {
+   public void handleFocus(double x, double y) throws CameraAccessException { //MotionEvent event) {
     //int pointerId = event.getPointerId(0);
     //int pointerIndex = event.findPointerIndex(pointerId);
 
