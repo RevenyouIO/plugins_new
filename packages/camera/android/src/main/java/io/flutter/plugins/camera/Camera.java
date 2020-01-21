@@ -12,7 +12,6 @@ import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
-import android.hardware.camera2.CameraCharacteristics.Key;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
@@ -535,7 +534,7 @@ public class Camera {
     // Get the pointer's current position
     //float x = event.getX(pointerIndex);
     //float y = event.getY(pointerIndex);
-	System.out.println("Handle focus");
+	
 
 	Rect touchRect = new Rect(
         (int)(x), 
@@ -578,54 +577,26 @@ public class Camera {
         // log
     }
 
-     if (isMeteringAreaAESupported(cc)) {
-		 System.out.println("AE regions are supported");
+    if (isMeteringAreaAESupported(cc)) {
      captureRequestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS,
                 new MeteringRectangle[]{focusArea});
-    } else {
-System.out.println("AE regions NOT supported");
-	}
+    }
     if (isMeteringAreaAFSupported(cc)) {
-		System.out.println("AF regions are supported");
         captureRequestBuilder
                 .set(CaptureRequest.CONTROL_AF_REGIONS, new MeteringRectangle[]{focusArea});
         captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
                 CaptureRequest.CONTROL_AF_MODE_AUTO);
-    } else {
-		System.out.println("AF regions NOT supported");
-	}
-
-	try {
-        cameraCaptureSession.capture(captureRequestBuilder.build(), mCaptureCallback,
-                mBackgroundHandler);
-        // After this, the camera will go back to the normal state of preview.
-        
-    } catch (CameraAccessException e){
-        // log
     }
+
+	cameraCaptureSession.capture(captureRequestBuilder.build(), mCaptureCallback,
+                mBackgroundHandler);
 
 	captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
 	captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
 	captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, null);
 
+	cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, mBackgroundHandler);
 
-   /* captureRequestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS,
-            new MeteringRectangle[]{focusArea});
-    captureRequestBuilder
-            .set(CaptureRequest.CONTROL_AF_REGIONS, new MeteringRectangle[]{focusArea});
-    captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
-            CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-    captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
-            CameraMetadata.CONTROL_AF_TRIGGER_START);
-    captureRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, 
-            CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_START);*/
-    try {
-        cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null,
-                mBackgroundHandler);
-        /* mManualFocusEngaged = true;*/
-    } catch (CameraAccessException e) {
-        //e.printStackTrace();
-    }
 }
 
 protected void startBackgroundThread() {
