@@ -7,6 +7,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.ImageFormat;
+import android.graphics.Rect; 
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -16,12 +17,17 @@ import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureFailure;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.CaptureResult;
+import android.hardware.camera2.TotalCaptureResult;
+import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.CamcorderProfile;
 import android.media.Image;
 import android.media.ImageReader;
 import android.media.MediaRecorder;
 import android.os.Build;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.util.Size;
 import android.view.OrientationEventListener;
 import android.view.Surface;
@@ -56,10 +62,20 @@ public class Camera {
   private ImageReader imageStreamReader;
   private DartMessenger dartMessenger;
   private CaptureRequest.Builder captureRequestBuilder;
+  private CaptureRequest mPreviewRequest;
   private MediaRecorder mediaRecorder;
   private boolean recordingVideo;
   private CamcorderProfile recordingProfile;
   private int currentOrientation = ORIENTATION_UNKNOWN;
+  private Handler mBackgroundHandler;
+  private HandlerThread mBackgroundThread;
+  private static final int STATE_PREVIEW = 0;
+  private static final int STATE_WAITING_LOCK = 1;
+  private static final int STATE_WAITING_PRECAPTURE = 2;
+  private static final int STATE_WAITING_NON_PRECAPTURE = 3;
+  private static final int STATE_PICTURE_TAKEN = 4;
+  private int mState = STATE_PREVIEW;
+  
 
   // Mirrors camera.dart
   public enum ResolutionPreset {
@@ -115,6 +131,35 @@ public class Camera {
     captureSize = new Size(recordingProfile.videoFrameWidth, recordingProfile.videoFrameHeight);
     previewSize = computeBestPreviewSize(cameraName, preset);
   }
+
+
+  private CameraCaptureSession.CaptureCallback mCaptureCallback
+            = new CameraCaptureSession.CaptureCallback() {
+
+        private void process(CaptureResult result) {
+            switch (mState) {
+                case STATE_PREVIEW: {
+                    // We have nothing to do when the camera preview is working normally.
+                    break;
+                }
+            }
+        }
+
+        @Override
+        public void onCaptureProgressed(@NonNull CameraCaptureSession session,
+                                        @NonNull CaptureRequest request,
+                                        @NonNull CaptureResult partialResult) {
+            process(partialResult);
+        }
+
+        @Override
+        public void onCaptureCompleted(@NonNull CameraCaptureSession session,
+                                       @NonNull CaptureRequest request,
+                                       @NonNull TotalCaptureResult result) {
+            process(result);
+        }
+    };
+
 
   private void prepareMediaRecorder(String outputFilePath) throws IOException {
     if (mediaRecorder != null) {
@@ -441,6 +486,92 @@ public class Camera {
           }
         });
   }
+
+   public void handleFocus(double x, double y) throws CameraAccessException { 
+    
+	Rect touchRect = new Rect(
+        (int)(x), 
+        (int)(y), 
+        (int)(x + 200), 
+        (int)(y + 200));
+
+	
+    if (cameraName == null) return;
+    CameraCharacteristics cc = cameraManager.getCameraCharacteristics(cameraName);
+	int maxAF = cc.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AF);
+	int maxAE = cc.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AE);
+
+	boolean isMeteringAreaAFSupported = false;
+	if ( maxAF >= 1) {
+		isMeteringAreaAFSupported = true;
+	}
+
+	boolean isMeteringAreaAESupported = false;
+	if (maxAE >= 1) {
+		isMeteringAreaAFSupported = true;
+	}
+
+    MeteringRectangle focusArea = new MeteringRectangle(touchRect,MeteringRectangle.METERING_WEIGHT_DONT_CARE);
+
+	cameraCaptureSession.stopRepeating();
+	captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
+    captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
+
+    try {
+        cameraCaptureSession.capture(captureRequestBuilder.build(), mCaptureCallback,
+                mBackgroundHandler);
+        // After this, the camera will go back to the normal state of preview.
+        mState = STATE_PREVIEW;
+    } catch (CameraAccessException e){
+        e.printStackTrace();
+    }
+
+    if (isMeteringAreaAESupported) {
+     captureRequestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS,
+                new MeteringRectangle[]{focusArea});
+    }
+    if (isMeteringAreaAFSupported) {
+        captureRequestBuilder
+                .set(CaptureRequest.CONTROL_AF_REGIONS, new MeteringRectangle[]{focusArea});
+        captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
+                CaptureRequest.CONTROL_AF_MODE_AUTO);
+    }
+
+	try {
+		cameraCaptureSession.capture(captureRequestBuilder.build(), mCaptureCallback,
+                mBackgroundHandler);
+	} catch (CameraAccessException e){
+        e.printStackTrace();
+    }
+
+	captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
+	captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
+	captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, null);
+
+	try {
+		cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, mBackgroundHandler);
+	} catch (CameraAccessException e){
+       e.printStackTrace();
+    }
+
+}
+
+protected void startBackgroundThread() {
+        mBackgroundThread = new HandlerThread("Camera Background");
+        mBackgroundThread.start();
+        mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
+    }
+
+    protected void stopBackgroundThread() {
+        mBackgroundThread.quitSafely();
+        try {
+            mBackgroundThread.join();
+            mBackgroundThread = null;
+            mBackgroundHandler = null;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 
   private void setImageStreamImageAvailableListener(final EventChannel.EventSink imageStreamSink) {
     imageStreamReader.setOnImageAvailableListener(
