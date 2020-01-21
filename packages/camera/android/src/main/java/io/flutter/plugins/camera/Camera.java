@@ -455,10 +455,10 @@ public class Camera {
 	System.out.println("handleFocus(x, y) called");
 
 	Rect touchRect = new Rect(
-        (int)(x - 100), 
-        (int)(y - 100), 
-        (int)(x + 100), 
-        (int)(y + 100));
+        (int)(x), 
+        (int)(y), 
+        (int)(x + 50), 
+        (int)(y + 50));
 
 	
     if (cameraName == null) return;
