@@ -132,8 +132,6 @@ public class Camera {
     previewSize = computeBestPreviewSize(cameraName, preset);
   }
 
-	
-
 
   private CameraCaptureSession.CaptureCallback mCaptureCallback
             = new CameraCaptureSession.CaptureCallback() {
@@ -144,43 +142,6 @@ public class Camera {
                     // We have nothing to do when the camera preview is working normally.
                     break;
                 }
-                /*case STATE_WAITING_LOCK: {
-                    Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
-                    if (afState == null) {
-                        captureStillPicture();
-                    } else if (CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED == afState ||
-                            CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED == afState) {
-                        // CONTROL_AE_STATE can be null on some devices
-                        Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-                        if (aeState == null ||
-                                aeState == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
-                            mState = STATE_PICTURE_TAKEN;
-                            captureStillPicture();
-                        } else {
-                            runPrecaptureSequence();
-                        }
-                    }
-                    break;
-                }
-                case STATE_WAITING_PRECAPTURE: {
-                    // CONTROL_AE_STATE can be null on some devices
-                    Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-                    if (aeState == null ||
-                            aeState == CaptureResult.CONTROL_AE_STATE_PRECAPTURE ||
-                            aeState == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED) {
-                        mState = STATE_WAITING_NON_PRECAPTURE;
-                    }
-                    break;
-                }
-                case STATE_WAITING_NON_PRECAPTURE: {
-                    // CONTROL_AE_STATE can be null on some devices
-                    Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-                    if (aeState == null || aeState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
-                        mState = STATE_PICTURE_TAKEN;
-                        captureStillPicture();
-                    }
-                    break;
-                }*/
             }
         }
 
@@ -197,10 +158,7 @@ public class Camera {
                                        @NonNull TotalCaptureResult result) {
             process(result);
         }
-
     };
-
-
 
 
   private void prepareMediaRecorder(String outputFilePath) throws IOException {
@@ -529,15 +487,8 @@ public class Camera {
         });
   }
 
-   public void handleFocus(double x, double y) throws CameraAccessException { //MotionEvent event) {
-    //int pointerId = event.getPointerId(0);
-    //int pointerIndex = event.findPointerIndex(pointerId);
-
-    // Get the pointer's current position
-    //float x = event.getX(pointerIndex);
-    //float y = event.getY(pointerIndex);
-	
-
+   public void handleFocus(double x, double y) throws CameraAccessException { 
+    
 	Rect touchRect = new Rect(
         (int)(x), 
         (int)(y), 
@@ -546,19 +497,9 @@ public class Camera {
 
 	
     if (cameraName == null) return;
-    //CameraManager cm = (CameraManager)this.getSystemService(Context.CAMERA_SERVICE);
     CameraCharacteristics cc = cameraManager.getCameraCharacteristics(cameraName);
 	int maxAF = cc.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AF);
 	int maxAE = cc.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AE);
-
-	
-
-
-    //try {
-  //      cc = cameraManager.getCameraCharacteristics(cameraName);
-  //  } catch (CameraAccessException e) {
-  //      e.printStackTrace();
-  //  }
 
 	boolean isMeteringAreaAFSupported = false;
 	if ( maxAF >= 1) {
@@ -570,29 +511,19 @@ public class Camera {
 		isMeteringAreaAFSupported = true;
 	}
 
-
     MeteringRectangle focusArea = new MeteringRectangle(touchRect,MeteringRectangle.METERING_WEIGHT_DONT_CARE);
 
 	cameraCaptureSession.stopRepeating();
 	captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
     captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
 
-
-
-
-
-
-
-
-
-    //captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
     try {
         cameraCaptureSession.capture(captureRequestBuilder.build(), mCaptureCallback,
                 mBackgroundHandler);
         // After this, the camera will go back to the normal state of preview.
         mState = STATE_PREVIEW;
     } catch (CameraAccessException e){
-        // log
+        e.printStackTrace();
     }
 
     if (isMeteringAreaAESupported) {
@@ -606,14 +537,22 @@ public class Camera {
                 CaptureRequest.CONTROL_AF_MODE_AUTO);
     }
 
-	cameraCaptureSession.capture(captureRequestBuilder.build(), mCaptureCallback,
+	try {
+		cameraCaptureSession.capture(captureRequestBuilder.build(), mCaptureCallback,
                 mBackgroundHandler);
+	} catch (CameraAccessException e){
+        e.printStackTrace();
+    }
 
 	captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
 	captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
 	captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, null);
 
-	cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, mBackgroundHandler);
+	try {
+		cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, mBackgroundHandler);
+	} catch (CameraAccessException e){
+       e.printStackTrace();
+    }
 
 }
 

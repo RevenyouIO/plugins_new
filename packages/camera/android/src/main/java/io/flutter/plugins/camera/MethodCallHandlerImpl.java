@@ -134,7 +134,6 @@ final class MethodCallHandlerImpl implements MethodChannel.MethodCallHandler {
           } catch (Exception e) {
             handleException(e, result);
           }
-		  //result.notImplemented();
           break;
 
         }
