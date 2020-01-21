@@ -460,12 +460,12 @@ public class Camera {
         (int)(x + 100), 
         (int)(y + 100));
 
-	int cameraId = Integer.parseInt(cameraName);
-    if (cameraId == null) return;
+	
+    if (cameraName == null) return;
     //CameraManager cm = (CameraManager)this.getSystemService(Context.CAMERA_SERVICE);
     CameraCharacteristics cc = null;
     try {
-        cc = cameraManager.getCameraCharacteristics(cameraId);
+        cc = cameraManager.getCameraCharacteristics(cameraName);
     } catch (CameraAccessException e) {
         e.printStackTrace();
     }
@@ -503,8 +503,8 @@ public class Camera {
     captureRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
             CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_START);
     try {
-        cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), mCaptureCallback,
-                mBackgroundHandler);
+        cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null,
+                null);
         /* mManualFocusEngaged = true;*/
     } catch (CameraAccessException e) {
         // error handling
