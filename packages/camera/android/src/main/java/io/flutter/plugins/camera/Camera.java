@@ -58,10 +58,20 @@ public class Camera {
   private ImageReader imageStreamReader;
   private DartMessenger dartMessenger;
   private CaptureRequest.Builder captureRequestBuilder;
+  private CaptureRequest mPreviewRequest;
   private MediaRecorder mediaRecorder;
   private boolean recordingVideo;
   private CamcorderProfile recordingProfile;
   private int currentOrientation = ORIENTATION_UNKNOWN;
+  private Handler mBackgroundHandler;
+  private HandlerThread mBackgroundThread;
+  private static final int STATE_PREVIEW = 0;
+  private static final int STATE_WAITING_LOCK = 1;
+  private static final int STATE_WAITING_PRECAPTURE = 2;
+  private static final int STATE_WAITING_NON_PRECAPTURE = 3;
+  private static final int STATE_PICTURE_TAKEN = 4;
+  private int mState = STATE_PREVIEW;
+  
 
   // Mirrors camera.dart
   public enum ResolutionPreset {
@@ -117,6 +127,75 @@ public class Camera {
     captureSize = new Size(recordingProfile.videoFrameWidth, recordingProfile.videoFrameHeight);
     previewSize = computeBestPreviewSize(cameraName, preset);
   }
+
+
+  private CameraCaptureSession.CaptureCallback mCaptureCallback
+            = new CameraCaptureSession.CaptureCallback() {
+
+        private void process(CaptureResult result) {
+            switch (mState) {
+                case STATE_PREVIEW: {
+                    // We have nothing to do when the camera preview is working normally.
+                    break;
+                }
+                /*case STATE_WAITING_LOCK: {
+                    Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
+                    if (afState == null) {
+                        captureStillPicture();
+                    } else if (CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED == afState ||
+                            CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED == afState) {
+                        // CONTROL_AE_STATE can be null on some devices
+                        Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
+                        if (aeState == null ||
+                                aeState == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
+                            mState = STATE_PICTURE_TAKEN;
+                            captureStillPicture();
+                        } else {
+                            runPrecaptureSequence();
+                        }
+                    }
+                    break;
+                }
+                case STATE_WAITING_PRECAPTURE: {
+                    // CONTROL_AE_STATE can be null on some devices
+                    Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
+                    if (aeState == null ||
+                            aeState == CaptureResult.CONTROL_AE_STATE_PRECAPTURE ||
+                            aeState == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED) {
+                        mState = STATE_WAITING_NON_PRECAPTURE;
+                    }
+                    break;
+                }
+                case STATE_WAITING_NON_PRECAPTURE: {
+                    // CONTROL_AE_STATE can be null on some devices
+                    Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
+                    if (aeState == null || aeState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
+                        mState = STATE_PICTURE_TAKEN;
+                        captureStillPicture();
+                    }
+                    break;
+                }*/
+            }
+        }
+
+        @Override
+        public void onCaptureProgressed(@NonNull CameraCaptureSession session,
+                                        @NonNull CaptureRequest request,
+                                        @NonNull CaptureResult partialResult) {
+            process(partialResult);
+        }
+
+        @Override
+        public void onCaptureCompleted(@NonNull CameraCaptureSession session,
+                                       @NonNull CaptureRequest request,
+                                       @NonNull TotalCaptureResult result) {
+            process(result);
+        }
+
+    };
+
+
+
 
   private void prepareMediaRecorder(String outputFilePath) throws IOException {
     if (mediaRecorder != null) {
@@ -452,13 +531,12 @@ public class Camera {
     //float x = event.getX(pointerIndex);
     //float y = event.getY(pointerIndex);
 
-	System.out.println("handleFocus(x, y) called");
 
 	Rect touchRect = new Rect(
         (int)(x), 
         (int)(y), 
-        (int)(x + 50), 
-        (int)(y + 50));
+        (int)(x + 200), 
+        (int)(y + 200));
 
 	
     if (cameraName == null) return;
@@ -472,25 +550,38 @@ public class Camera {
 
 
     MeteringRectangle focusArea = new MeteringRectangle(touchRect,MeteringRectangle.METERING_WEIGHT_DONT_CARE);
+
+	//cameraCaptureSession.stopRepeating();
+	//captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
+   // captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
+
+
+
+
+
+
+
+
+
     captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
     try {
-        cameraCaptureSession.capture(captureRequestBuilder.build(), null,
-                null);
+        cameraCaptureSession.capture(captureRequestBuilder.build(), mCaptureCallback,
+                mBackgroundHandler);
         // After this, the camera will go back to the normal state of preview.
-       // mState = STATE_PREVIEW;
+        mState = STATE_PREVIEW;
     } catch (CameraAccessException e){
         // log
     }
 
     /* if (isMeteringAreaAESupported(cc)) {
-     *//*captureRequestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS,
-                new MeteringRectangle[]{focusArea});*//*
+     captureRequestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS,
+                new MeteringRectangle[]{focusArea});
     }
     if (isMeteringAreaAFSupported(cc)) {
-        *//*captureRequestBuilder
+        captureRequestBuilder
                 .set(CaptureRequest.CONTROL_AF_REGIONS, new MeteringRectangle[]{focusArea});
         captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
-                CaptureRequest.CONTROL_AF_MODE_AUTO);*//*
+                CaptureRequest.CONTROL_AF_MODE_AUTO);
     }*/
     captureRequestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS,
             new MeteringRectangle[]{focusArea});
@@ -503,13 +594,30 @@ public class Camera {
     captureRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
             CameraMetadata.CONTROL_AE_PRECAPTURE_TRIGGER_START);
     try {
-        cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null,
-                null);
+        cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), mCaptureCallback,
+                mBackgroundHandler);
         /* mManualFocusEngaged = true;*/
     } catch (CameraAccessException e) {
-        // error handling
+        //e.printStackTrace();
     }
 }
+
+protected void startBackgroundThread() {
+        mBackgroundThread = new HandlerThread("Camera Background");
+        mBackgroundThread.start();
+        mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
+    }
+
+    protected void stopBackgroundThread() {
+        mBackgroundThread.quitSafely();
+        try {
+            mBackgroundThread.join();
+            mBackgroundThread = null;
+            mBackgroundHandler = null;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 
   private void setImageStreamImageAvailableListener(final EventChannel.EventSink imageStreamSink) {
     imageStreamReader.setOnImageAvailableListener(
