@@ -554,12 +554,12 @@ public class Camera {
   //      e.printStackTrace();
   //  }
 
-	private boolean isMeteringAreaAFSupported = false;
+	final boolean isMeteringAreaAFSupported = false;
 	if (CameraCharacteristics.CONTROL_MAX_REGIONS_AF >= 1) {
 		isMeteringAreaAFSupported = true;
 	}
 
-	private boolean isMeteringAreaAESupported = false;
+	final boolean isMeteringAreaAESupported = false;
 	if (CameraCharacteristics.CONTROL_MAX_REGIONS_AE >= 1) {
 		isMeteringAreaAFSupported = true;
 	}
